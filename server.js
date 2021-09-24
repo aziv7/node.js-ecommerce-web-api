@@ -1,5 +1,6 @@
 const express = require('express')
 const env = require('dotenv').config()
+const cors = require('cors')
 const mongoose = require('mongoose')
 const productRoutes = require('./routes/product')
 const orderRoutes = require('./routes/order')
@@ -9,9 +10,10 @@ const morgan = require('morgan')
 const url = process.env.API_PATH
 const production = process.env.PROD
 const db = process.env.DB
-const server = express()
-
 const port = process.env.APP_PORT
+
+const server = express()
+server.use(cors({ origin: 'http://localhost' }))
 
 production === 'false' && server.use(morgan('tiny'))
 server.use(express.json())

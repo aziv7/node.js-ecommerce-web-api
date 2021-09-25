@@ -2,9 +2,16 @@ const mongoose = require('mongoose')
 
 const userSchema = mongoose.Schema(
   {
-    name: String,
-    image: String,
-    inStock: { type: Number, required: true },
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    password: { type: String, required: true },
+    street: { type: String, default: '' },
+    apartment: { type: String, default: '' },
+    city: { type: String, default: '' },
+    zip: { type: String, default: '' },
+    country: { type: String, default: '' },
+    phone: { type: Number, required: true },
+    isAdmin: { type: Boolean, default: false, required: false },
   },
   { timestamps: { updatedAt: 'updated', createdAt: 'created' } }
 )

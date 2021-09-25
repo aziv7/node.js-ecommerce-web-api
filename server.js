@@ -11,13 +11,16 @@ const url = process.env.API_PATH
 const production = process.env.PROD
 const db = process.env.DB
 const port = process.env.APP_PORT
-
+const auth = require('./middlewares/jwt')
+const errorHandler = require('./middlewares/errorHandler')
 const server = express()
-server.use(cors({ origin: 'http://localhost' }))
+server.use(cors())
+server.options('http://localhost', cors())
 
 production === 'false' && server.use(morgan('tiny'))
 server.use(express.json())
-
+server.use(auth())
+server.use(errorHandler)
 server.use(`${url}products`, productRoutes)
 server.use(`${url}orders`, orderRoutes)
 server.use(`${url}users`, userRoutes)

@@ -17,6 +17,8 @@ const server = express()
 server.use(cors())
 server.options('http://localhost', cors())
 
+server.use('/public/uploads', express.static(__dirname + '/public/uploads'))
+
 production === 'false' && server.use(morgan('tiny'))
 server.use(express.json())
 server.use(auth())

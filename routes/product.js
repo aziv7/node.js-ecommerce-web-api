@@ -2,7 +2,7 @@ const express = require('express')
 const Category = require('../models/category')
 const router = express.Router()
 const Product = require('../models/product')
-
+const multer = require('multer')
 router.get(`/featured/:nbr`, (req, res) => {
   const nbr = req.params.nbr ? req.params.nbr : 1
   console.log('nbr=' + nbr)
@@ -29,12 +29,37 @@ router.get(`/`, async (req, res) => {
   }
 })
 
-router.post(`/`, async (req, res) => {
+const ALLOWED_FILES = {
+  'image/png': 'png',
+  'image/jpeg': 'jpeg',
+  'image/jpg': 'jpg',
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const ext = ALLOWED_FILES[file.mimetype]
+
+    let uploadError = new Error('invalid image File')
+
+    if (ext) uploadError = null
+
+    cb(uploadError, './public/uploads')
+  },
+  filename: function (req, file, cb) {
+    const ext = ALLOWED_FILES[file.mimetype]
+    const name = file.originalname.split('.')[0].split(' ').join('_')
+    cb(null, `${name}_${Date.now()}.${ext}`)
+  },
+})
+
+const uploadOptions = multer({ storage: storage })
+
+router.post(`/`, uploadOptions.single('image'), async (req, res) => {
   const {
     name,
     description,
     details,
-    image,
+
     images,
     brand,
     price,
@@ -52,12 +77,16 @@ router.post(`/`, async (req, res) => {
       if (!refCategory)
         return res.status(400).json({ message: 'invalid Category' })
     }
+    if (!req.file) return res.status(400).json({ message: 'image is required' })
 
+    const filePath = `${req.protocol}://${req.get('host')}/public/uploads/${
+      req.file.filename
+    }`
     const product = new Product({
       name,
       description,
       details,
-      image,
+      image: filePath,
       images,
       brand,
       price,
@@ -87,13 +116,39 @@ router.get(`/:id`, async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put(
+  '/gallery/:id',
+  uploadOptions.array('images', 15),
+  async (req, res) => {
+    const files = req.files
+
+    const imgs = []
+
+    if (files) {
+      files.map((f) => {
+        imgs.push(
+          `${req.protocol}://${req.get('host')}/public/uploads/${f.filename}`
+        )
+      })
+    }
+
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { images: imgs },
+      { new: true }
+    )
+    if (!product) return res.status(404).json({ message: 'Product not found' })
+
+    return res.status(200).json(product)
+  }
+)
+
+router.put('/:id', uploadOptions.single('image'), async (req, res) => {
   try {
     const {
       name,
       description,
       details,
-      image,
       images,
       brand,
       price,
@@ -109,14 +164,22 @@ router.put('/:id', async (req, res) => {
       if (!refCategory)
         return res.status(400).json({ message: 'invalid Category' })
     }
+    const prod = await Product.findById(req.params.id)
 
+    if (!prod) return res.status(404).json({ message: 'Product not found' })
+
+    const filePath = req.file
+      ? `${req.protocol}://${req.get('host')}/public/uploads/${
+          req.file.filename
+        }`
+      : prod.image
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
       {
         name: name,
         description: description,
         details: details,
-        image: image,
+        image: filePath,
         images: images,
         brand: brand,
         price: price,
